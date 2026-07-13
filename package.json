@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/health",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Liveness + readiness probes for the AbsoluteJS substrate. createHealthChecker composes named checks; healthPlugin exposes /healthz (process alive?) + /readyz (can serve traffic?) with a standard JSON envelope. Per-check timeout, aggregate worst-of-any status, Cache-Control: no-store.",
   "repository": {
     "type": "git",
@@ -35,7 +35,10 @@
   "publishConfig": {
     "access": "public"
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "build": "rm -rf dist && bun build src/index.ts src/manifest.ts --outdir dist --sourcemap --target=bun --external elysia && tsc --project tsconfig.build.json && absolute-manifest emit",
     "test": "bun test tests/",
@@ -44,13 +47,23 @@
     "check:package": "bun run typecheck && bun run build && bun run test",
     "release": "bun run format && bun run check:package && bun publish"
   },
-  "keywords": ["absolutejs", "health", "liveness", "readiness", "healthz", "readyz", "elysia"],
+  "keywords": [
+    "absolutejs",
+    "health",
+    "liveness",
+    "readiness",
+    "healthz",
+    "readyz",
+    "elysia"
+  ],
   "peerDependencies": {
     "bun-types": "^1.3.14",
     "elysia": ">= 1.4.0"
   },
   "peerDependenciesMeta": {
-    "elysia": { "optional": true }
+    "elysia": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/bun": "^1.3.14",
