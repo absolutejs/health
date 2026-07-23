@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/health",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Liveness + readiness probes for the AbsoluteJS substrate. createHealthChecker composes named checks; healthPlugin exposes /healthz (process alive?) + /readyz (can serve traffic?) with a standard JSON envelope. Per-check timeout, aggregate worst-of-any status, Cache-Control: no-store.",
   "repository": {
     "type": "git",
@@ -17,7 +17,7 @@
   "license": "BSL-1.1",
   "author": "Alex Kahn",
   "absolutejs": {
-    "manifestContract": 1
+    "manifestContract": 2
   },
   "exports": {
     ".": {
@@ -72,7 +72,7 @@
     "typescript": "^5.9.0"
   },
   "dependencies": {
-    "@absolutejs/manifest": "^0.1.0",
+    "@absolutejs/manifest": "^0.4.0",
     "@sinclair/typebox": "^0.34.0"
   }
 }
