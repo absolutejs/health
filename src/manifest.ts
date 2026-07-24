@@ -26,7 +26,7 @@ export const manifest = defineManifest<
     tagline: "Let load balancers and monitors ask your site if it is healthy.",
   },
   requires: {
-    peers: [{ name: "elysia", range: ">= 1.4.0", reason: "plugin host" }],
+    peers: [{ name: "elysia", range: ">=1.4.29 <2", reason: "plugin host" }],
   },
   settings: Type.Object({
     defaultTimeoutMs: Type.Optional(
