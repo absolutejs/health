@@ -25,6 +25,36 @@ export const manifest = defineManifest<
     name: "@absolutejs/health",
     tagline: "Let load balancers and monitors ask your site if it is healthy.",
   },
+  product: {
+    healthChecks: [
+      {
+        description:
+          "Run every registered liveness and readiness probe and retain the aggregate result.",
+        id: "application_health",
+        title: "Application health",
+        tool: "run_health_checks",
+      },
+    ],
+    releaseChecks: [
+      {
+        description:
+          "The application readiness checks must pass before production promotion.",
+        healthCheckIds: ["application_health"],
+        id: "readiness_passes",
+        severity: "blocking",
+        title: "Application is ready",
+      },
+    ],
+    workflowActions: [
+      {
+        description:
+          "Run registered health checks from a schedule or release simulation.",
+        id: "run_health_checks",
+        title: "Run health checks",
+        tool: "run_health_checks",
+      },
+    ],
+  },
   requires: {
     peers: [{ name: "elysia", range: ">=1.4.29 <2", reason: "plugin host" }],
   },
