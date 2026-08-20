@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/health",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Liveness + readiness probes for the AbsoluteJS substrate. createHealthChecker composes named checks; healthPlugin exposes /healthz (process alive?) + /readyz (can serve traffic?) with a standard JSON envelope. Per-check timeout, aggregate worst-of-any status, Cache-Control: no-store.",
   "repository": {
     "type": "git",
@@ -17,20 +17,7 @@
   "license": "BSL-1.1",
   "author": "Alex Kahn",
   "absolutejs": {
-    "manifestContract": 2,
-    "runtimePeers": {
-      "elysia": {
-        "artifactImports": [
-          "elysia"
-        ],
-        "buildExternals": [
-          "elysia"
-        ],
-        "optional": true,
-        "range": ">=1.4.29 <2",
-        "tested": "1.4.29"
-      }
-    }
+    "manifestContract": 2
   },
   "exports": {
     ".": {
@@ -70,7 +57,7 @@
     "elysia"
   ],
   "peerDependencies": {
-    "elysia": ">=1.4.29 <2"
+		"elysia": "^2.0.0-beta.6"
   },
   "peerDependenciesMeta": {
     "elysia": {
@@ -79,12 +66,14 @@
   },
   "devDependencies": {
     "@types/bun": "^1.3.14",
-    "elysia": "1.4.29",
-    "prettier": "^3.8.3",
+		"elysia": "2.0.0-beta.6",
+		"exact-mirror": "1.2.4",
+		"prettier": "^3.8.3",
+		"typebox": "1.3.16",
     "typescript": "^5.9.0"
   },
   "dependencies": {
-    "@absolutejs/manifest": "^0.8.0",
+    "@absolutejs/manifest": "^0.9.0",
     "@sinclair/typebox": "^0.34.0"
   }
 }
