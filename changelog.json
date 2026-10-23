@@ -1,5 +1,26 @@
 {
 	"contract": 1,
 	"name": "@absolutejs/health",
-	"releases": []
+	"releases": [
+		{
+			"version": "0.5.0",
+			"date": "2026-10-23",
+			"changes": [
+				{
+					"kind": "breaking",
+					"summary": "Return a concrete typed Elysia 2 RC plugin instead of ElysiaLike. Remove the fake app injection hook and test real HTTP composition; retain standard health responses and lazy Elysia loading.",
+					"symbols": [
+						"healthPlugin",
+						"HealthPluginOptions",
+						"HealthStatus",
+						"HealthKind"
+					],
+					"migration": {
+						"manual": true,
+						"instruction": "Upgrade Elysia to 2.0.0-rc.0 or later and mount await healthPlugin({ checker }) directly with app.use. Remove makeElysia; tests should use Elysia.handle with a controlled checker."
+					}
+				}
+			]
+		}
+	]
 }

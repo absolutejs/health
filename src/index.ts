@@ -267,42 +267,31 @@ export const httpCheck = (
 // Elysia plugin
 // =============================================================================
 
-type ElysiaLike = {
-	get: (path: string, handler: () => Promise<Response> | Response) => ElysiaLike;
-};
-
-export type HealthPluginOptions = {
+export type HealthPluginOptions<
+	LivenessPath extends string = string,
+	ReadinessPath extends string = string
+> = {
 	checker: HealthChecker;
 	/** Liveness endpoint path. Default `/healthz`. */
-	livenessPath?: string;
+	livenessPath?: LivenessPath;
 	/** Readiness endpoint path. Default `/readyz`. */
-	readinessPath?: string;
-	/** Inject a fake Elysia (tests). */
-	makeElysia?: () => ElysiaLike;
+	readinessPath?: ReadinessPath;
 };
 
 const statusCode = (status: HealthStatus): number =>
 	status === 'fail' ? 503 : 200;
 
-export const healthPlugin = async (
-	options: HealthPluginOptions
-): Promise<ElysiaLike> => {
-	const livenessPath = options.livenessPath ?? '/healthz';
-	const readinessPath = options.readinessPath ?? '/readyz';
-
-	let app: ElysiaLike;
-	if (options.makeElysia !== undefined) {
-		app = options.makeElysia();
-	} else {
-		const mod = (await import('elysia')) as {
-			Elysia: new (init?: { name?: string }) => ElysiaLike;
-		};
-		app = new mod.Elysia({ name: '@absolutejs/health' });
-	}
-
+/** A real, typed Elysia plugin; importing the checker alone does not load Elysia. */
+export const healthPlugin = async <
+	const LivenessPath extends string = '/healthz',
+	const ReadinessPath extends string = '/readyz'
+>(
+	options: HealthPluginOptions<LivenessPath, ReadinessPath>
+) => {
+	const { Elysia } = await import('elysia');
 	const handler = (kind: HealthKind) => async (): Promise<Response> => {
 		const envelope = await options.checker.run(kind);
-		return new Response(JSON.stringify(envelope), {
+		return Response.json(envelope, {
 			headers: {
 				'cache-control': 'no-store',
 				'content-type': 'application/health+json'
@@ -310,8 +299,7 @@ export const healthPlugin = async (
 			status: statusCode(envelope.status)
 		});
 	};
-
-	app.get(livenessPath, handler('liveness'));
-	app.get(readinessPath, handler('readiness'));
-	return app;
+	return new Elysia({ name: '@absolutejs/health' })
+		.get(options.livenessPath ?? '/healthz', handler('liveness'))
+		.get(options.readinessPath ?? '/readyz', handler('readiness'));
 };

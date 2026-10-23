@@ -1,3 +1,4 @@
+import { Elysia } from 'elysia';
 /**
  * Tests for @absolutejs/health.
  */
@@ -271,105 +272,70 @@ describe('httpCheck', () => {
 });
 
 // =============================================================================
-// healthPlugin — Elysia integration via injected fake
-// =============================================================================
-
+// Real Elysia integration: mount, route, status, headers, and check filtering.
 describe('healthPlugin', () => {
-	const makeFakeApp = () => {
-		const handlers: Record<string, () => Promise<Response> | Response> = {};
-		const app = {
-			get: (path: string, fn: () => Promise<Response> | Response) => {
-				handlers[path] = fn;
-				return app;
-			}
-		};
-		return { app, handlers };
-	};
-
-	test('registers /healthz + /readyz with default paths', async () => {
-		const { app, handlers } = makeFakeApp();
-		const checker = createHealthChecker({
-			checks: [{ check: () => ({ status: 'pass' }), name: 'a' }]
-		});
-		await healthPlugin({
-			checker,
-			makeElysia: () => app
-		});
-		expect(Object.keys(handlers).sort()).toEqual(['/healthz', '/readyz']);
-	});
-
-	test('honors custom paths', async () => {
-		const { app, handlers } = makeFakeApp();
-		const checker = createHealthChecker();
-		await healthPlugin({
-			checker,
-			livenessPath: '/_alive',
-			makeElysia: () => app,
-			readinessPath: '/_ready'
-		});
-		expect(Object.keys(handlers).sort()).toEqual(['/_alive', '/_ready']);
-	});
-
-	test('pass → 200 with application/health+json body', async () => {
-		const { app, handlers } = makeFakeApp();
-		const checker = createHealthChecker({
-			checks: [{ check: () => ({ status: 'pass' }), name: 'a' }]
-		});
-		await healthPlugin({ checker, makeElysia: () => app });
-		const response = await handlers['/healthz']!();
-		expect(response.status).toBe(200);
-		expect(response.headers.get('content-type')).toBe(
-			'application/health+json'
+	test('mounts directly with default paths', async () => {
+		const app = new Elysia().use(
+			await healthPlugin({ checker: createHealthChecker() })
 		);
-		expect(response.headers.get('cache-control')).toBe('no-store');
-		const body = await response.json();
-		expect(body.status).toBe('pass');
+		for (const path of ['/healthz', '/readyz']) {
+			const response = await app.handle(new Request(`http://localhost${path}`));
+			expect(response.status).toBe(200);
+			expect((await response.json()).status).toBe('pass');
+		}
 	});
-
-	test('warn → 200 (not 503)', async () => {
-		const { app, handlers } = makeFakeApp();
-		const checker = createHealthChecker({
-			checks: [{ check: () => ({ status: 'warn' }), name: 'a' }]
+	test('honors custom paths without installing the defaults', async () => {
+		const app = new Elysia().use(
+			await healthPlugin({
+				checker: createHealthChecker(),
+				livenessPath: '/_alive',
+				readinessPath: '/_ready'
+			})
+		);
+		expect(
+			(await app.handle(new Request('http://localhost/_alive'))).status
+		).toBe(200);
+		expect(
+			(await app.handle(new Request('http://localhost/_ready'))).status
+		).toBe(200);
+		expect(
+			(await app.handle(new Request('http://localhost/healthz'))).status
+		).toBe(404);
+	});
+	for (const [health, code] of [
+		['pass', 200],
+		['warn', 200],
+		['fail', 503]
+	] as const) {
+		test(`${health} produces HTTP ${code} with health headers`, async () => {
+			const checker = createHealthChecker({
+				checks: [{ name: 'fixture', check: () => ({ status: health }) }]
+			});
+			const app = new Elysia().use(await healthPlugin({ checker }));
+			const response = await app.handle(
+				new Request('http://localhost/healthz')
+			);
+			expect(response.status).toBe(code);
+			expect(response.headers.get('content-type')).toBe(
+				'application/health+json'
+			);
+			expect(response.headers.get('cache-control')).toBe('no-store');
+			expect((await response.json()).status).toBe(health);
 		});
-		await healthPlugin({ checker, makeElysia: () => app });
-		const response = await handlers['/healthz']!();
-		expect(response.status).toBe(200);
-	});
-
-	test('fail → 503', async () => {
-		const { app, handlers } = makeFakeApp();
-		const checker = createHealthChecker({
-			checks: [{ check: () => ({ status: 'fail' }), name: 'a' }]
-		});
-		await healthPlugin({ checker, makeElysia: () => app });
-		const response = await handlers['/healthz']!();
-		expect(response.status).toBe(503);
-	});
-
-	test('readyz filters to readiness + both checks', async () => {
-		const { app, handlers } = makeFakeApp();
+	}
+	test('readiness and liveness run only their matching checks', async () => {
 		const checker = createHealthChecker({
 			checks: [
-				{
-					check: () => ({ status: 'fail' }),
-					kind: 'liveness',
-					name: 'liveness-only-fails'
-				},
-				{
-					check: () => ({ status: 'pass' }),
-					kind: 'readiness',
-					name: 'readiness-only-passes'
-				}
+				{ name: 'live', kind: 'liveness', check: () => ({ status: 'fail' }) },
+				{ name: 'ready', kind: 'readiness', check: () => ({ status: 'pass' }) }
 			]
 		});
-		await healthPlugin({ checker, makeElysia: () => app });
-		// /readyz should NOT include `liveness-only-fails` and should be 200.
-		const ready = await handlers['/readyz']!();
+		const app = new Elysia().use(await healthPlugin({ checker }));
+		const ready = await app.handle(new Request('http://localhost/readyz'));
 		expect(ready.status).toBe(200);
-		const body = await ready.json();
-		expect(Object.keys(body.checks)).toEqual(['readiness-only-passes']);
-		// /healthz includes `liveness-only-fails` and should be 503.
-		const live = await handlers['/healthz']!();
-		expect(live.status).toBe(503);
+		expect(Object.keys((await ready.json()).checks)).toEqual(['ready']);
+		expect(
+			(await app.handle(new Request('http://localhost/healthz'))).status
+		).toBe(503);
 	});
 });
